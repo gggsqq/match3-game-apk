@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>消消乐 - 手机触屏游戏</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none}
+body{font-family:'PingFai SC','Microsoft YaHei',sans-serif;background:#1a1a2e;min-height:100vh;display:flex;flex-direction:column;align-items:center;overflow:hidden;user-select:none}
+#topbar{width:100%;max-width:420px;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(0,0,0,0.3)}
+.stat-box{text-align:center}
+.stat-label{font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:2px}
+.stat-value{font-size:22px;font-weight:900}
+.score-val{color:#ffd700}
+.level-val{color:#00d4ff}
+.lives-val{color:#ff6b6b}
+#game-container{position:relative;margin:8px 0}
+canvas{display:block;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.4)}
+#hint-text{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;font-size:28px;font-weight:900;text-align:center;pointer-events:none;opacity:0;transition:opacity .3s}
+#hint-text.show{opacity:1}
+#hint-text span{display:block;font-size:16px;font-weight:400;margin-top:8px;color:rgba(255,255,255,0.6)}
+#no-moves{position:absolute;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);display:none;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;z-index:10}
+#no-moves.show{display:flex}
+.no-moves-title{font-size:24px;font-weight:900;color:#fff;margin-bottom:8px}
+.no-moves-sub{color:rgba(255,255,255,0.6);margin-bottom:24px;font-size:14px}
+.acts{display:flex;gap:12px}
+.act-btn{padding:12px 24px;border:none;border-radius:25px;font-size:15px;font-weight:700;cursor:pointer}
+.act-btn1{background:linear-gradient(135deg,#ffd700,#ff9500);color:#000}
+.act-btn2{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+#combo-popup{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(0);color:#ffd700;font-size:36px;font-weight:900;text-align:center;pointer-events:none;z-index:20;transition:transform .3s;text-shadow:0 0 20px rgba(255,215,0,0.8)}
+#combo-popup.show{transform:translate(-50%,-50%) scale(1)}
+#combo-popup small{display:block;font-size:14px;color:#fff;margin-top:4px}
+#bottom-bar{width:100%;max-width:420px;padding:12px 16px;display:flex;gap:10px}
+.btm-btn{flex:1;padding:12px;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer}
+.hint-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.hint-btn:active{background:rgba(255,255,255,0.2)}
+.refresh-btn{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+.refresh-btn:active{background:rgba(255,255,255,0.2)}
+#ad-banner{position:fixed;bottom:0;left:0;width:100%;height:56px;background:linear-gradient(135deg,rgba(255,215,0,0.08),rgba(255,149,0,0.08));border-top:1px solid rgba(255,215,0,0.15);display:flex;align-items:center;padding:0 12px;z-index:10}
+.ad-icon{font-size:22px;margin-right:10px}
+.ad-info{flex:1}
+.ad-title{font-size:13px;font-weight:700;color:#ffd700}
+.ad-sub{font-size:10px;color:rgba(255,255,255,0.4)}
+.ad-btn{background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:12px;padding:8px 14px;border:none;border-radius:20px}
+#game-over{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:50}
+#game-over.show{display:flex}
+.go-card{background:#1a1a2e;border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:40px;max-width:360px;width:90%;text-align:center}
+.go-title{font-size:28px;font-weight:900;margin-bottom:4px;background:linear-gradient(135deg,#ff6b6b,#ffd700);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.go-score-label{color:rgba(255,255,255,0.5);font-size:13px;margin-top:16px}
+.go-score{font-size:48px;font-weight:900;color:#ffd700;margin:8px 0}
+.go-best-label{color:rgba(255,255,255,0.4);font-size:12px;margin-top:8px}
+.go-best{font-size:20px;font-weight:700;color:#00d4ff}
+.go-btns{display:flex;flex-direction:column;gap:10px;margin-top:24px}
+.go-btn{padding:14px;border:none;border-radius:30px;font-size:16px;font-weight:700;cursor:pointer}
+.go-btn-ad{background:linear-gradient(135deg,#ffd700,#ff9500);color:#000}
+.go-btn-restart{background:rgba(255,255,255,0.1);color:#fff;border:1px solid rgba(255,255,255,0.2)}
+#start-screen{position:fixed;top:0;left:0;width:100%;height:100%;background:linear-gradient(180deg,#1a1a2e,#2a1a4e);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:60}
+#start-screen.hide{display:none}
+.start-title{font-size:48px;font-weight:900;margin-bottom:8px}
+.start-title span{background:linear-gradient(135deg,#ff6b6b,#ffd700,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.start-sub{color:rgba(255,255,255,0.5);margin-bottom:40px;font-size:14px}
+.start-btn{background:linear-gradient(135deg,#ff6b6b,#ff9500);color:#fff;border:none;padding:18px 64px;border-radius:40px;font-size:18px;font-weight:700;cursor:pointer;margin-bottom:12px;box-shadow:0 8px 24px rgba(255,107,107,0.4)}
+.start-tip{color:rgba(255,255,255,0.3);font-size:12px}
+.how-box{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:20px 28px;margin-top:28px;text-align:center;max-width:320px}
+.how-box h3{color:#fff;font-size:14px;margin-bottom:10px}
+.how-box p{color:rgba(255,255,255,0.5);font-size:13px;line-height:1.8}
+#ad-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;justify-content:center;z-index:100}
+#ad-overlay.show{display:flex}
+.ad-card{width:90%;max-width:360px;background:#1a1a2e;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.1)}
+.ad-hdr{padding:12px 16px;background:linear-gradient(135deg,#ffd700,#ff9500);display:flex;justify-content:space-between;align-items:center}
+.ad-hdr-txt{font-size:13px;font-weight:700;color:#000}
+.ad-skip{background:rgba(0,0,0,0.2);border:none;color:#000;font-size:12px;padding:6px 14px;border-radius:20px;cursor:pointer;font-weight:700}
+.ad-body{padding:24px;text-align:center}
+.ad-icon-big{font-size:56px;margin-bottom:12px}
+.ad-body p{color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:16px}
+.ad-body button{background:linear-gradient(135deg,#ffd700,#ff9500);color:#000;font-weight:700;font-size:15px;padding:14px 32px;border:none;border-radius:30px;cursor:pointer;margin-bottom:8px}
+.ad-timer{color:rgba(255,255,255,0.4);font-size:12px}
+.ad-foot{color:rgba(255,255,255,0.3);font-size:10px;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="stat-box">
+    <div class="stat-label">分数</div>
+    <div class="stat-value score-val" id="scoreDisplay">0</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">关卡</div>
+    <div class="stat-value level-val" id="levelDisplay">1</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">生命</div>
+    <div class="stat-value lives-val" id="livesDisplay">3</div>
+  </div>
+  <div class="stat-box">
+    <div class="stat-label">最高</div>
+    <div class="stat-value" style="color:#fff" id="bestDisplay">0</div>
+  </div>
+</div>
+
+<div id="game-container">
+  <canvas id="gameCanvas"></canvas>
+  <div id="hint-text">没有可消除的了！<span>点击下方刷新或看广告</span></div>
+  <div id="no-moves">
+    <div class="no-moves-title">🎉 全部消除！</div>
+    <div class="no-moves-sub" id="noMovesScore">本局得分：0</div>
+    <div class="acts">
+      <button class="act-btn act-btn2" onclick="refreshBoard()">刷新图谱</button>
+      <button class="act-btn act-btn1" onclick="watchAdContinue()">看广告继续</button>
+    </div>
+  </div>
+  <div id="combo-popup"></div>
+</div>
+
+<div id="bottom-bar">
+  <button class="btm-btn hint-btn" onclick="showHint()">💡 提示</button>
+  <button class="btm-btn refresh-btn" onclick="watchAdRefresh()">🔄 看广告刷新</button>
+</div>
+
+<div id="ad-banner">
+  <div class="ad-icon">🎮</div>
+  <div class="ad-info">
+    <div class="ad-title">广告位 · 支持游戏开发</div>
+    <div class="ad-sub">点击上方按钮，支持我们持续更新</div>
+  </div>
+  <button class="ad-btn" onclick="watchBannerAd()">点击支持</button>
+</div>
+
+<div id="start-screen">
+  <h1 class="start-title"><span>消消乐</span></h1>
+  <p class="start-sub">3种颜色 · 3个连消 · 赚金币</p>
+  <button class="start-btn" onclick="startGame()">开始游戏</button>
+  <p class="start-tip">玩得越多 · 赚得越多</p>
+  <div class="how-box">
+    <h3>🎯 游戏说明</h3>
+    <p>点击两个相邻的相同颜色方块<br>3个或以上连在一起即可消除<br>消除获得分数，消耗生命<br>生命归零游戏结束</p>
+  </div>
+</div>
+
+<div id="game-over">
+  <div class="go-card">
+    <h2 class="go-title">游戏结束</h2>
+    <div class="go-score-label">本局得分</div>
+    <div class="go-score" id="goScore">0</div>
+    <div class="go-best-label">历史最高</div>
+    <div class="go-best" id="goBest">0</div>
+    <div class="go-btns">
+      <button class="go-btn go-btn-ad" onclick="watchAdRetry()">看广告复活 (+3生命)</button>
+      <button class="go-btn go-btn-restart" onclick="restartGame()">重新开始</button>
+    </div>
+  </div>
+</div>
+
+<div id="ad-overlay">
+  <div class="ad-card">
+    <div class="ad-hdr">
+      <span class="ad-hdr-txt">🎁 广告奖励</span>
+      <button class="ad-skip" id="adSkipBtn" onclick="closeAdOverlay()">跳过</button>
+    </div>
+    <div class="ad-body">
+      <div class="ad-icon-big">🎁</div>
+      <p>观看完整广告<br>解锁奖励并继续游戏</p>
+      <button id="adWatchBtn" onclick="startAdCountdown()">立即观看</button>
+      <div class="ad-timer" id="adTimer"></div>
+      <div class="ad-foot">广告由第三方提供 · 保护隐私</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Game config
+const GRID = 8;
+const COLORS = ['#ff6b6b','#ffd700','#00d4ff','#a855f7','#00ff88'];
+const COLOR_EMOJI = ['🔴','🟡','🔵','🟣','🟢'];
+let TILE_SIZE, OFFSET_X, OFFSET_Y;
+
+// Canvas
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+// Responsive sizing
+function resize() {
+  const maxW = Math.min(window.innerWidth - 16, 420);
+  const maxH = window.innerHeight - 200;
+  const size = Math.min(maxW, maxH);
+  canvas.width = size;
+  canvas.height = size;
+  TILE_SIZE = size / GRID;
+  OFFSET_X = 0;
+  OFFSET_Y = 0;
+}
+resize();
+window.addEventListener('resize', resize);
+
+// Game state
+let grid = [];
+let selected = null;
+let score = 0;
+let level = 1;
+let lives = 3;
+let bestScore = parseInt(localStorage.getItem('match3_best') || '0');
+let isAnimating = false;
+let comboCount = 0;
+let comboTimer = null;
+let hintCells = [];
+let hintTimer = null;
+let pendingAction = null; // 'refresh', 'continue', 'retry', 'banner'
+
+// Init grid
+function initGrid() {
+  grid = [];
+  for (let r = 0; r < GRID; r++) {
+    grid[r] = [];
+    for (let c = 0; c < GRID; c++) {
+      let col;
+      do {
+        col = Math.floor(Math.random() * COLORS.length);
+      } while (isMatch(r, c, col));
+      grid[r][c] = { color: col, scale: 1, alpha: 1, offsetY: 0 };
+    }
+  }
+}
+
+function isMatch(r, c, col) {
+  if (c >= 2 && grid[r][c-1] && grid[r][c-2] && grid[r][c-1].color === col && grid[r][c-2].color === col) return true;
+  if (r >= 2 && grid[r-1] && grid[r-2] && grid[r-1][c] && grid[r-2][c] && grid[r-1][c].color === col && grid[r-2][c].color === col) return true;
+  return false;
+}
+
+// Draw
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  // Background
+  ctx.fillStyle = '#1a1a2e';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= GRID; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * TILE_SIZE, 0);
+    ctx.lineTo(i * TILE_SIZE, canvas.height);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, i * TILE_SIZE);
+    ctx.lineTo(canvas.width, i * TILE_SIZE);
+    ctx.stroke();
+  }
+  
+  // Tiles
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      if (!grid[r][c]) continue;
+      const t = grid[r][c];
+      const x = c * TILE_SIZE + TILE_SIZE / 2;
+      const y = r * TILE_SIZE + TILE_SIZE / 2 + t.offsetY;
+      const size = TILE_SIZE * 0.42 * t.scale;
+      
+      ctx.save();
+      ctx.globalAlpha = t.alpha;
+      
+      // Shadow
+      ctx.shadowColor = COLORS[t.color];
+      ctx.shadowBlur = 12;
+      
+      // Tile
+      ctx.beginPath();
+      roundRect(ctx, x - size, y - size, size * 2, size * 2, size * 0.3);
+      ctx.fillStyle = COLORS[t.color];
+      ctx.fill();
+      
+      ctx.shadowBlur = 0;
+      
+      // Shine
+      ctx.beginPath();
+      ctx.arc(x - size * 0.3, y - size * 0.3, size * 0.25, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.35)';
+      ctx.fill();
+      
+      // Selected glow
+      if (selected && selected.r === r && selected.c === c) {
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+      }
+      
+      // Hint glow
+      if (hintCells.some(h => h.r === r && h.c === c)) {
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 15;
+        ctx.stroke();
+      }
+      
+      ctx.restore();
+    }
+  }
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+}
+
+// Input
+let touchStart = null;
+
+function getCell(x, y) {
+  const rect = canvas.getBoundingClientRect();
+  const cx = x - rect.left;
+  const cy = y - rect.top;
+  const c = Math.floor(cx / TILE_SIZE);
+  const r = Math.floor(cy / TILE_SIZE);
+  if (r >= 0 && r < GRID && c >= 0 && c < GRID) return {r, c};
+  return null;
+}
+
+function isAdjacent(a, b) {
+  return (Math.abs(a.r - b.r) + Math.abs(a.c - b.c)) === 1;
+}
+
+canvas.addEventListener('click', function(e) {
+  if (isAnimating) return;
+  const cell = getCell(e.clientX, e.clientY);
+  if (!cell) return;
+  
+  clearHint();
+  
+  if (!selected) {
+    selected = cell;
+    draw();
+    return;
+  }
+  
+  if (selected.r === cell.r && selected.c === cell.c) {
+    selected = null;
+    draw();
+    return;
+  }
+  
+  if (isAdjacent(selected, cell) && grid[selected.r][selected.c].color === grid[cell.r][cell.c].color) {
+    swapAndRemove(selected, cell);
+  } else {
+    selected = cell;
+    draw();
+  }
+});
+
+canvas.addEventListener('touchstart', function(e) {
+  e.preventDefault();
+  touchStart = {x: e.touches[0].clientX, y: e.touches[0].clientY};
+}, {passive: false});
+
+canvas.addEventListener('touchend', function(e) {
+  e.preventDefault();
+  if (!touchStart) return;
+  const cell = getCell(touchStart.x, touchStart.y);
+  if (cell) {
+    canvas.dispatchEvent(new MouseEvent('click', {
+      clientX: touchStart.x,
+      clientY: touchStart.y
+    }));
+  }
+  touchStart = null;
+}, {passive: false});
+
+// Swap and remove
+async function swapAndRemove(a, b) {
+  isAnimating = true;
+  selected = null;
+  
+  // Swap
+  const tmp = grid[a.r][a.c];
+  grid[a.r][a.c] = grid[b.r][b.c];
+  grid[b.r][b.c] = tmp;
+  
+  // Animate swap
+  await animateSwap(a, b);
+  
+  // Check matches
+  const matches = findMatches();
+  
+  if (matches.length === 0) {
+    // Swap back
+    const tmp2 = grid[a.r][a.c];
+    grid[a.r][a.c] = grid[b.r][b.c];
+    grid[b.r][b.c] = tmp2;
+    await animateSwap(a, b);
+    isAnimating = false;
+    draw();
+    return;
+  }
+  
+  comboCount = 0;
+  clearComboTimer();
+  comboTimer = setTimeout(endCombo, 2000);
+  
+  await removeMatches(matches);
+  
+  // Drop and fill
+  await dropTiles();
+  await fillEmpty();
+  
+  // Check for new matches
+  while (findMatches().length > 0) {
+    comboCount++;
+    showComboPopup(comboCount);
+    const m = findMatches();
+    await removeMatches(m);
+    await dropTiles();
+    await fillEmpty();
+  }
+  
+  endCombo();
+  
+  // Check if no moves
+  if (!hasValidMoves()) {
+    showNoMoves();
+  }
+  
+  isAnimating = false;
+  draw();
+}
+
+function animateSwap(a, b) {
+  return new Promise(resolve => {
+    let frame = 0;
+    const animate = () => {
+      frame++;
+      draw();
+      if (frame < 15) requestAnimationFrame(animate);
+      else resolve();
+    };
+    animate();
+  });
+}
+
+function findMatches() {
+  let matches = new Set();
+  
+  // Horizontal
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID - 2; c++) {
+      if (grid[r][c] && grid[r][c+1] && grid[r][c+2] &&
+          grid[r][c].color === grid[r][c+1].color &&
+          grid[r][c].color === grid[r][c+2].color) {
+        matches.add(r + ',' + c);
+        matches.add(r + ',' + (c+1));
+        matches.add(r + ',' + (c+2));
+      }
+    }
+  }
+  
+  // Vertical
+  for (let c = 0; c < GRID; c++) {
+    for (let r = 0; r < GRID - 2; r++) {
+      if (grid[r][c] && grid[r+1][c] && grid[r+2][c] &&
+          grid[r][c].color === grid[r+1][c].color &&
+          grid[r][c].color === grid[r+2][c].color) {
+        matches.add(r + ',' + c);
+        matches.add((r+1) + ',' + c);
+        matches.add((r+2) + ',' + c);
+      }
+    }
+  }
+  
+  return Array.from(matches).map(s => {
+    const [r, c] = s.split(',').map(Number);
+    return {r, c};
+  });
+}
+
+async function removeMatches(matches) {
+  comboCount++;
+  const points = matches.length * 10 * comboCount;
+  score += points;
+  
+  // Bonus for 4+
+  if (matches.length >= 4) score += 50;
+  if (matches.length >= 5) score += 100;
+  if (matches.length >= 6) score += 200;
+  
+  updateUI();
+  
+  // Animate removal
+  await new Promise(resolve => {
+    let frame = 0;
+    const animate = () => {
+      frame++;
+      matches.forEach(m => {
+        if (grid[m.r][m.c]) {
+          grid[m.r][m.c].scale = Math.max(0, 1 - frame / 10);
+          grid[m.r][m.c].alpha = Math.max(0, 1 - frame / 10);
+        }
+      });
+      draw();
+      if (frame < 15) requestAnimationFrame(animate);
+      else resolve();
+    };
+    animate();
+  });
+  
+  matches.forEach(m => {
+    grid[m.r][m.c] = null;
+  });
+}
+
+async function dropTiles() {
+  for (let c = 0; c < GRID; c++) {
+    let empty = [];
+    for (let r = GRID - 1; r >= 0; r--) {
+      if (!grid[r][c]) empty.push(r);
+      else if (empty.length > 0) {
+        grid[empty.shift()][c] = grid[r][c];
+        grid[r][c] = null;
+      }
+    }
+  }
+  await new Promise(resolve => {
+    let frame = 0;
+    const animate = () => {
+      frame++;
+      draw();
+      if (frame < 10) requestAnimationFrame(animate);
+      else resolve();
+    };
+    animate();
+  });
+}
+
+async function fillEmpty() {
+  for (let c = 0; c < GRID; c++) {
+    for (let r = GRID - 1; r >= 0; r--) {
+      if (!grid[r][c]) {
+        grid[r][c] = {color: Math.floor(Math.random() * COLORS.length), scale: 0, alpha: 0, offsetY: -TILE_SIZE};
+      }
+    }
+  }
+  await new Promise(resolve => {
+    let frame = 0;
+    const animate = () => {
+      frame++;
+      for (let r = 0; r < GRID; r++) {
+        for (let c = 0; c < GRID; c++) {
+          if (grid[r][c] && grid[r][c].offsetY < 0) {
+            grid[r][c].offsetY = Math.min(0, grid[r][c].offsetY + TILE_SIZE / 5);
+            grid[r][c].scale = Math.min(1, grid[r][c].scale + 0.15);
+            grid[r][c].alpha = Math.min(1, grid[r][c].alpha + 0.15);
+          }
+        }
+      }
+      draw();
+      if (frame < 10) requestAnimationFrame(animate);
+      else resolve();
+    };
+    animate();
+  });
+}
+
+function hasValidMoves() {
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      if (c < GRID - 1 && grid[r][c].color === grid[r][c+1].color) return true;
+      if (r < GRID - 1 && grid[r][c].color === grid[r+1][c].color) return true;
+    }
+  }
+  return false;
+}
+
+function findHint() {
+  for (let r = 0; r < GRID; r++) {
+    for (let c = 0; c < GRID; c++) {
+      if (c < GRID - 1 && grid[r][c].color === grid[r][c+1].color) {
+        return [{r, c}, {r, c: c+1}];
+      }
+      if (r < GRID - 1 && grid[r][c].color === grid[r+1][c].color) {
+        return [{r, c}, {r: r+1, c}];
+      }
+    }
+  }
+  return null;
+}
+
+function showHint() {
+  clearHint();
+  const hint = findHint();
+  if (hint) {
+    hintCells = hint;
+    draw();
+    hintTimer = setTimeout(clearHint, 3000);
+  }
+}
+
+function clearHint() {
+  hintCells = [];
+  if (hintTimer) clearTimeout(hintTimer);
+  draw();
+}
+
+// Combo
+function showComboPopup(count) {
+  if (count < 2) return;
+  const popup = document.getElementById('combo-popup');
+  popup.innerHTML = count + '连消！<small>+' + (count * 50) + '分</small>';
+  popup.classList.add('show');
+  score += count * 50;
+  updateUI();
+  setTimeout(() => popup.classList.remove('show'), 1000);
+}
+
+function endCombo() {
+  clearComboTimer();
+  comboCount = 0;
+}
+
+function clearComboTimer() {
+  if (comboTimer) clearTimeout(comboTimer);
+  comboTimer = null;
+}
+
+// UI
+function updateUI() {
+  document.getElementById('scoreDisplay').textContent = score;
+  document.getElementById('levelDisplay').textContent = level;
+  document.getElementById('livesDisplay').textContent = lives;
+  document.getElementById('bestDisplay').textContent = bestScore;
+  
+  if (score > bestScore) {
+    bestScore = score;
+    localStorage.setItem('match3_best', bestScore);
+  }
+  
+  // Level up
+  const newLevel = Math.floor(score / 500) + 1;
+  if (newLevel > level) {
+    level = newLevel;
+    lives = Math.min(lives + 1, 5);
+  }
+}
+
+// Game over
+function showNoMoves() {
+  document.getElementById('noMovesScore').textContent = '本局得分：' + score;
+  document.getElementById('no-moves').classList.add('show');
+}
+
+function hideNoMoves() {
+  document.getElementById('no-moves').classList.remove('show');
+}
+
+function loseLife() {
+  lives--;
+  updateUI();
+  if (lives <= 0) {
+    showGameOver();
+  }
+}
+
+function showGameOver() {
+  document.getElementById('goScore').textContent = score;
+  document.getElementById('goBest').textContent = bestScore;
+  document.getElementById('game-over').classList.add('show');
+}
+
+function restartGame() {
+  document.getElementById('game-over').classList.remove('show');
+  score = 0;
+  level = 1;
+  lives = 3;
+  initGrid();
+  updateUI();
+  isAnimating = false;
+  draw();
+}
+
+function startGame() {
+  document.getElementById('start-screen').classList.add('hide');
+  score = 0;
+  level = 1;
+  lives = 3;
+  initGrid();
+  updateUI();
+  draw();
+}
+
+// Ad functions
+function showAdOverlay(action) {
+  pendingAction = action;
+  document.getElementById('adOverlay').classList.add('show');
+  document.getElementById('adTimer').textContent = '';
+  document.getElementById('adWatchBtn').textContent = '立即观看';
+  document.getElementById('adWatchBtn').disabled = false;
+  document.getElementById('adSkipBtn').style.display = 'inline-block';
+}
+
+function closeAdOverlay() {
+  document.getElementById('adOverlay').classList.remove('show');
+  pendingAction = null;
+}
+
+function startAdCountdown() {
+  const btn = document.getElementById('adWatchBtn');
+  const timer = document.getElementById('adTimer');
+  btn.disabled = true;
+  btn.textContent = '观看中...';
+  let countdown = 5;
+  timer.textContent = countdown + '秒后可领取奖励';
+  let interval = setInterval(() => {
+    countdown--;
+    if (countdown <= 0) {
+      clearInterval(interval);
+      timer.textContent = '';
+      btn.textContent = '✓ 观看完成，点击领取';
+      btn.disabled = false;
+      btn.onclick = () => {
+        closeAdOverlay();
+        executePendingAction();
+      };
+    } else {
+      timer.textContent = countdown + '秒后可领取奖励';
+    }
+  }, 1000);
+}
+
+function executePendingAction() {
+  if (pendingAction === 'refresh') {
+    refreshBoard();
+  } else if (pendingAction === 'continue') {
+    hideNoMoves();
+    isAnimating = false;
+  } else if (pendingAction === 'retry') {
+    restartGame();
+  } else if (pendingAction === 'banner') {
+    // Just a click, no action needed
+  }
+  pendingAction = null;
+}
+
+function watchAdRefresh() {
+  showAdOverlay('refresh');
+}
+
+function watchAdContinue() {
+  showAdOverlay('continue');
+}
+
+function watchAdRetry() {
+  document.getElementById('game-over').classList.remove('show');
+  showAdOverlay('retry');
+}
+
+function watchBannerAd() {
+  showAdOverlay('banner');
+}
+
+function refreshBoard() {
+  hideNoMoves();
+  initGrid();
+  isAnimating = false;
+  draw();
+}
+
+// Init
+updateUI();
+initGrid();
+draw();
+</script>
+</body>
+</html>
