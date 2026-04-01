@@ -1,0 +1,6 @@
+{
+  "appId": "com.match3game.app",
+  "appName": "消消乐",
+  "webDir": "www",
+  "bundledWebRuntime": false
+}
